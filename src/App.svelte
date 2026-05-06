@@ -7,6 +7,8 @@
   let animationFrame = 0
   let error = ''
   let startTime = performance.now()
+  let codeScrollTop = 0
+  let codeScrollLeft = 0
 
   let shaderCode = `precision highp float;
 
@@ -26,6 +28,8 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`
 
+  $: highlightedShader = highlightShader(shaderCode)
+
   $: if (gl && shaderCode) {
     buildProgram()
   }
@@ -43,6 +47,39 @@ void main() {
 
     return () => cancelAnimationFrame(animationFrame)
   })
+
+  function escapeHtml(value: string) {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+  }
+
+  function highlightShader(source: string) {
+    const escaped = escapeHtml(source)
+    const keywords = 'attribute|break|const|continue|discard|do|else|for|if|in|inout|out|precision|return|struct|uniform|varying|while'
+    const types = 'bool|bvec2|bvec3|bvec4|float|int|ivec2|ivec3|ivec4|mat2|mat3|mat4|sampler2D|samplerCube|vec2|vec3|vec4|void'
+    const builtins = 'abs|acos|asin|atan|ceil|clamp|cos|cross|distance|dot|exp|floor|fract|gl_FragColor|gl_FragCoord|gl_Position|length|mix|mod|normalize|pow|reflect|sin|smoothstep|sqrt|step|tan|texture2D'
+    const pattern = new RegExp(
+      `(/\\*[\\s\\S]*?\\*/|//.*)|\\b(${keywords})\\b|\\b(${types})\\b|\\b(${builtins})\\b|(-?\\b\\d+(?:\\.\\d+)?\\b)`,
+      'g',
+    )
+
+    return escaped.replace(pattern, (match, comment, keyword, type, builtin, number) => {
+      if (comment) return `<span class="token-comment">${match}</span>`
+      if (keyword) return `<span class="token-keyword">${match}</span>`
+      if (type) return `<span class="token-type">${match}</span>`
+      if (builtin) return `<span class="token-builtin">${match}</span>`
+      if (number) return `<span class="token-number">${match}</span>`
+      return match
+    })
+  }
+
+  function syncCodeScroll(event: Event) {
+    const target = event.currentTarget as HTMLTextAreaElement
+    codeScrollTop = target.scrollTop
+    codeScrollLeft = target.scrollLeft
+  }
 
   function compileShader(context: WebGLRenderingContext, type: number, source: string) {
     const shader = context.createShader(type)
@@ -138,7 +175,15 @@ void main() {
 <main class="editor-shell">
   <section class="code-panel">
     <label for="shader-code">Fragment shader</label>
-    <textarea id="shader-code" bind:value={shaderCode} spellcheck="false"></textarea>
+    <div class="code-editor">
+      <pre class="highlight-layer" aria-hidden="true"><code style={`transform: translate(${-codeScrollLeft}px, ${-codeScrollTop}px)`}>{@html highlightedShader}</code></pre>
+      <textarea
+        id="shader-code"
+        bind:value={shaderCode}
+        spellcheck="false"
+        onscroll={syncCodeScroll}
+      ></textarea>
+    </div>
   </section>
 
   <section class="preview-panel">
