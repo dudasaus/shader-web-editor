@@ -17,6 +17,8 @@
     '&': {
       height: '100%',
       fontSize: '14px',
+      backgroundColor: 'var(--color-bg-panel)',
+      color: 'var(--color-text-primary)',
     },
     '.cm-scroller': {
       overflow: 'auto',
@@ -28,7 +30,7 @@
     },
     '.cm-content': {
       padding: '18px 0',
-      caretColor: '#d1fae5',
+      caretColor: 'var(--color-text-primary)',
       tabSize: '2',
     },
     '.cm-line': {
@@ -36,20 +38,28 @@
     },
     '.cm-gutters': {
       border: '0',
-      backgroundColor: '#020617',
-      color: '#64748b',
+      backgroundColor: 'var(--color-bg-panel)',
+      color: 'var(--color-text-muted)',
     },
     '.cm-gutterElement': {
       padding: '0 12px 0 18px',
     },
     '.cm-activeLine': {
-      backgroundColor: 'rgba(148, 163, 184, 0.08)',
+      backgroundColor: 'var(--color-bg-line)',
     },
     '.cm-activeLineGutter': {
-      backgroundColor: 'rgba(148, 163, 184, 0.12)',
+      backgroundColor: 'var(--color-bg-line-strong)',
     },
     '.cm-selectionBackground, ::selection': {
-      backgroundColor: 'rgba(96, 165, 250, 0.35) !important',
+      backgroundColor: 'var(--color-bg-selection) !important',
+    },
+    '.cm-cursor, .cm-dropCursor': {
+      borderLeftColor: 'var(--color-text-primary)',
+    },
+    '.cm-panels': {
+      backgroundColor: 'var(--color-bg-panel)',
+      color: 'var(--color-text-primary)',
+      borderBottom: '1px solid var(--color-border)',
     },
     '.cm-focused': {
       outline: 'none',
