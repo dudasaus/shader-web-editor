@@ -1,12 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import ShaderEditor from './lib/ShaderEditor.svelte'
+  import {
+    getShaderDirectoryName,
+    loadShader,
+    saveShader,
+    supportsFileSystemAccess,
+  } from './lib/shaderFiles'
 
   let canvas: HTMLCanvasElement
   let gl: WebGLRenderingContext | null = null
   let program: WebGLProgram | null = null
   let animationFrame = 0
   let error = ''
+  let fileStatus = ''
   let startTime = performance.now()
 
   let shaderCode = `precision highp float;
@@ -31,19 +38,92 @@ void main() {
     buildProgram()
   }
 
+  $: activeDirectoryName = getShaderDirectoryName()
+
   onMount(() => {
+    if (!supportsFileSystemAccess()) {
+      fileStatus = 'File System Access API is not available in this browser.'
+    }
+
+    window.addEventListener('keydown', handleGlobalKeydown)
+
     gl = canvas.getContext('webgl')
 
     if (!gl) {
       error = 'WebGL is not available in this browser.'
-      return
+      return () => window.removeEventListener('keydown', handleGlobalKeydown)
     }
 
     buildProgram()
     render()
 
-    return () => cancelAnimationFrame(animationFrame)
+    return () => {
+      cancelAnimationFrame(animationFrame)
+      window.removeEventListener('keydown', handleGlobalKeydown)
+    }
   })
+
+  async function handleSaveShader() {
+    try {
+      const result = await saveShader(shaderCode)
+
+      if (!result) {
+        fileStatus = 'Save canceled.'
+        return
+      }
+
+      fileStatus = `Saved ${result.fileName} in ${result.directoryName}.`
+    } catch (err) {
+      fileStatus = getFileActionMessage(err, 'Save')
+    }
+  }
+
+  async function handleLoadShader() {
+    try {
+      const result = await loadShader()
+
+      if (!result) {
+        fileStatus = 'Load canceled.'
+        return
+      }
+
+      shaderCode = result.source
+      fileStatus = `Loaded ${result.fileName} from ${result.directoryName}.`
+    } catch (err) {
+      fileStatus = getFileActionMessage(err, 'Load')
+    }
+  }
+
+  function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.defaultPrevented || event.repeat || event.altKey || event.shiftKey) {
+      return
+    }
+
+    if (!event.ctrlKey && !event.metaKey) {
+      return
+    }
+
+    const key = event.key.toLowerCase()
+
+    if (key === 's') {
+      event.preventDefault()
+      void handleSaveShader()
+      return
+    }
+
+    if (key === 'o') {
+      event.preventDefault()
+      void handleLoadShader()
+    }
+  }
+
+  function getFileActionMessage(error: unknown, action: 'Save' | 'Load') {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return `${action} canceled.`
+    }
+
+    return error instanceof Error ? error.message : String(error)
+  }
 
   function compileShader(context: WebGLRenderingContext, type: number, source: string) {
     const shader = context.createShader(type)
@@ -138,7 +218,17 @@ void main() {
 
 <main class="editor-shell">
   <section class="code-panel">
-    <label for="shader-code">Fragment shader</label>
+    <div class="panel-header">
+      <label for="shader-code">Fragment shader</label>
+      <p class="panel-meta">
+        <span>{activeDirectoryName ? `Directory: ${activeDirectoryName}` : 'Directory: not selected'}</span>
+        <span>Ctrl+S save</span>
+        <span>Ctrl+O load</span>
+      </p>
+      {#if fileStatus}
+        <p class="file-status">{fileStatus}</p>
+      {/if}
+    </div>
     <div class="code-editor">
       <ShaderEditor inputId="shader-code" bind:value={shaderCode} />
     </div>

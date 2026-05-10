@@ -80,11 +80,35 @@ textarea {
   gap: 8px;
 }
 
+.panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 label {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.panel-meta,
+.file-status {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.panel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: var(--color-text-muted);
+}
+
+.file-status {
   color: var(--color-text-secondary);
 }
 
