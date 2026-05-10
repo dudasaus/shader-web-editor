@@ -4,6 +4,7 @@
   import {
     getShaderDirectoryName,
     loadShader,
+    restoreShaderDirectory,
     saveShader,
     supportsFileSystemAccess,
   } from './lib/shaderFiles'
@@ -12,6 +13,7 @@
   let gl: WebGLRenderingContext | null = null
   let program: WebGLProgram | null = null
   let animationFrame = 0
+  let activeDirectoryName = ''
   let error = ''
   let fileStatus = ''
   let startTime = performance.now()
@@ -38,12 +40,12 @@ void main() {
     buildProgram()
   }
 
-  $: activeDirectoryName = getShaderDirectoryName()
-
   onMount(() => {
     if (!supportsFileSystemAccess()) {
       fileStatus = 'File System Access API is not available in this browser.'
     }
+
+    void hydrateDirectoryState()
 
     window.addEventListener('keydown', handleGlobalKeydown)
 
@@ -72,6 +74,7 @@ void main() {
         return
       }
 
+      syncDirectoryName()
       fileStatus = `Saved ${result.fileName} in ${result.directoryName}.`
     } catch (err) {
       fileStatus = getFileActionMessage(err, 'Save')
@@ -87,6 +90,7 @@ void main() {
         return
       }
 
+      syncDirectoryName()
       shaderCode = result.source
       fileStatus = `Loaded ${result.fileName} from ${result.directoryName}.`
     } catch (err) {
@@ -123,6 +127,19 @@ void main() {
     }
 
     return error instanceof Error ? error.message : String(error)
+  }
+
+  async function hydrateDirectoryState() {
+    try {
+      await restoreShaderDirectory()
+      syncDirectoryName()
+    } catch {
+      activeDirectoryName = ''
+    }
+  }
+
+  function syncDirectoryName() {
+    activeDirectoryName = getShaderDirectoryName()
   }
 
   function compileShader(context: WebGLRenderingContext, type: number, source: string) {
